@@ -12,7 +12,12 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-uas-sistem-cerdas-2026")
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
+CSRF_TRUSTED_ORIGINS = ["https://*.hf.space", "https://huggingface.co"]
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+X_FRAME_OPTIONS = "ALLOWALL"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
