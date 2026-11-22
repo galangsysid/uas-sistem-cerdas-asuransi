@@ -1,0 +1,10 @@
+django
+pandas
+numpy
+scikit-learn
+joblib
+matplotlib
+groq
+python-dotenv
+whitenoise
+gunicorn

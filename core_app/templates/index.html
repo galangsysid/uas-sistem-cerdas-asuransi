@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Prediksi Biaya Asuransi Kesehatan & Kategori Risiko</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#F8F7F4] text-stone-900 antialiased">
+
+    <header class="bg-white border-b border-stone-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">
+                Sistem Cerdas — Random Forest, Fuzzy Mamdani & Groq AI
+            </p>
+            <h1 class="mt-1 text-2xl sm:text-3xl font-bold text-stone-900">
+                Sistem Prediksi Biaya Asuransi Kesehatan & Kategori Risiko
+            </h1>
+            <p class="mt-1 text-sm text-stone-600">
+                Estimasi biaya tanggungan medis tahunan berbasis Machine Learning, evaluasi tingkat risiko dengan Sistem Inferensi Fuzzy 2-Input, serta interpretasi visual otomatis.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+        {% if pesan_error %}
+        <div class="bg-red-50 border-l-4 border-red-700 p-4 rounded-r-md">
+            <p class="text-sm font-semibold text-red-800">Input Tidak Dapat Diproses</p>
+            <p class="text-sm text-red-700 mt-1">{{ pesan_error }}</p>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- Panel Form Input -->
+            <section class="lg:col-span-5 bg-white border border-stone-200 rounded-lg p-6 shadow-sm">
+                <h2 class="text-lg font-semibold text-stone-900 border-b border-stone-200 pb-3">
+                    Parameter Profil Pengguna
+                </h2>
+
+                <form method="POST" action="{% url 'index' %}" class="mt-5 space-y-4">
+                    {% csrf_token %}
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="age" class="block text-sm font-medium text-stone-700">Usia (Tahun)</label>
+                            <input type="number" id="age" name="age" min="17" max="100" required
+                                   value="{{ form_data.age }}"
+                                   class="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                            <span class="text-xs text-stone-500">Rentang: 17 - 100 tahun</span>
+                        </div>
+
+                        <div>
+                            <label for="sex" class="block text-sm font-medium text-stone-700">Jenis Kelamin</label>
+                            <select id="sex" name="sex"
+                                    class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                                <option value="male" {% if form_data.sex == "male" %}selected{% endif %}>Laki-laki</option>
+                                <option value="female" {% if form_data.sex == "female" %}selected{% endif %}>Perempuan</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pilihan Mode BMI -->
+                    <div class="bg-stone-50 border border-stone-200 rounded-md p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-stone-800">Metode Input BMI</span>
+                            <select id="mode_bmi" name="mode_bmi" onchange="toggleBmiMode()"
+                                    class="rounded-md border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 focus:border-amber-700 focus:outline-none">
+                                <option value="langsung" {% if form_data.mode_bmi != "tinggi_berat" %}selected{% endif %}>Input BMI Langsung</option>
+                                <option value="tinggi_berat" {% if form_data.mode_bmi == "tinggi_berat" %}selected{% endif %}>Hitung Tinggi & Berat</option>
+                            </select>
+                        </div>
+
+                        <div id="box_bmi_langsung">
+                            <label for="bmi" class="block text-xs font-medium text-stone-600">Indeks Massa Tubuh (BMI)</label>
+                            <input type="number" step="any" id="bmi" name="bmi" min="10" max="60"
+                                   value="{{ form_data.bmi }}"
+                                   class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                            <span class="text-xs text-stone-500">Rentang normal WHO: 18.5 - 24.9 (batas: 10 - 60)</span>
+                        </div>
+
+                        <div id="box_tinggi_berat" class="hidden space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="tinggi_cm" class="block text-xs font-medium text-stone-600">Tinggi Badan (cm)</label>
+                                    <input type="number" step="any" id="tinggi_cm" name="tinggi_cm" min="100" max="250"
+                                           value="{{ form_data.tinggi_cm }}" oninput="hitungBmiOtomatis()"
+                                           class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label for="berat_kg" class="block text-xs font-medium text-stone-600">Berat Badan (kg)</label>
+                                    <input type="number" step="any" id="berat_kg" name="berat_kg" min="25" max="300"
+                                           value="{{ form_data.berat_kg }}" oninput="hitungBmiOtomatis()"
+                                           class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                                </div>
+                            </div>
+                            <p class="text-xs text-stone-600">
+                                Hasil kalkulasi BMI: <strong id="preview_bmi" class="text-amber-800">{{ form_data.bmi }}</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="children" class="block text-sm font-medium text-stone-700">Jumlah Tanggungan Anak</label>
+                            <input type="number" id="children" name="children" min="0" max="10" required
+                                   value="{{ form_data.children }}"
+                                   class="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                            <span class="text-xs text-stone-500">Rentang: 0 - 10 anak</span>
+                        </div>
+
+                        <div>
+                            <label for="smoker" class="block text-sm font-medium text-stone-700">Status Perokok</label>
+                            <select id="smoker" name="smoker"
+                                    class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                                <option value="no" {% if form_data.smoker == "no" %}selected{% endif %}>Bukan Perokok</option>
+                                <option value="yes" {% if form_data.smoker == "yes" %}selected{% endif %}>Perokok</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="region" class="block text-sm font-medium text-stone-700">Wilayah Tempat Tinggal</label>
+                        <select id="region" name="region"
+                                class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-amber-700 focus:outline-none">
+                            <option value="southeast" {% if form_data.region == "southeast" %}selected{% endif %}>Southeast</option>
+                            <option value="southwest" {% if form_data.region == "southwest" %}selected{% endif %}>Southwest</option>
+                            <option value="northeast" {% if form_data.region == "northeast" %}selected{% endif %}>Northeast</option>
+                            <option value="northwest" {% if form_data.region == "northwest" %}selected{% endif %}>Northwest</option>
+                        </select>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full rounded-md bg-amber-700 hover:bg-amber-800 text-white font-semibold py-2.5 px-4 text-sm transition-colors">
+                        Hitung Prediksi & Analisis Risiko
+                    </button>
+                </form>
+            </section>
+
+            <!-- Panel Hasil Analisis -->
+            <section class="lg:col-span-7 space-y-6">
+                {% if hasil %}
+                <!-- Ringkasan Angka Utama -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white border border-stone-200 rounded-lg p-5 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-stone-500">Estimasi Biaya Tahunan</p>
+                        <p class="mt-2 text-2xl font-bold text-amber-800">USD {{ hasil.prediksi_biaya|floatformat:2 }}</p>
+                        <p class="mt-1 text-xs text-stone-500">Model Random Forest Regressor</p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-lg p-5 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-stone-500">Skor Risiko Fuzzy</p>
+                        <p class="mt-2 text-2xl font-bold text-stone-900">{{ hasil.skor_fuzzy|floatformat:2 }} <span class="text-sm font-normal text-stone-500">/ 100</span></p>
+                        <p class="mt-1 text-xs text-stone-500">Defuzzifikasi Centroid Mamdani</p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-lg p-5 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-stone-500">Kategori Risiko</p>
+                        <div class="mt-2">
+                            {% if hasil.kategori_risiko == "Rendah" %}
+                            <span class="inline-block px-3 py-1 text-sm font-semibold rounded border border-emerald-300 bg-emerald-50 text-emerald-800">
+                                Risiko Rendah
+                            </span>
+                            {% elif hasil.kategori_risiko == "Sedang" %}
+                            <span class="inline-block px-3 py-1 text-sm font-semibold rounded border border-amber-300 bg-amber-50 text-amber-800">
+                                Risiko Sedang
+                            </span>
+                            {% else %}
+                            <span class="inline-block px-3 py-1 text-sm font-semibold rounded border border-red-300 bg-red-50 text-red-800">
+                                Risiko Tinggi
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="mt-2 text-xs text-stone-500">BMI {{ hasil.bmi|floatformat:1 }} | Usia {{ hasil.age }} thn</p>
+                    </div>
+                </div>
+
+                <!-- Grafik Matplotlib -->
+                <div class="bg-white border border-stone-200 rounded-lg p-6 shadow-sm">
+                    <h3 class="text-base font-semibold text-stone-900 mb-4">
+                        Visualisasi Perbandingan Biaya & Posisi Risiko (Matplotlib)
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <img src="data:image/png;base64,{{ hasil.grafik_base64 }}"
+                             alt="Grafik perbandingan biaya asuransi dan posisi risiko fuzzy"
+                             class="w-full h-auto rounded border border-stone-100">
+                    </div>
+                </div>
+
+                <!-- Penjelasan Groq AI / Fallback -->
+                <div class="bg-white border border-stone-200 rounded-lg p-6 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3">
+                        <h3 class="text-base font-semibold text-stone-900">
+                            Interpretasi Grafik & Profil Risiko
+                        </h3>
+                        <span class="text-xs font-medium px-2.5 py-1 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                            Sumber: {{ hasil.sumber_penjelasan }}
+                        </span>
+                    </div>
+                    <div class="mt-4 text-sm text-stone-700 leading-relaxed space-y-3">
+                        {{ hasil.penjelasan_ai|linebreaks }}
+                    </div>
+                </div>
+
+                <!-- Rincian Inferensi Fuzzy -->
+                <div class="bg-white border border-stone-200 rounded-lg p-6 shadow-sm">
+                    <h3 class="text-sm font-semibold text-stone-900 mb-3">
+                        Detail Inferensi Fuzzy Mamdani (2-Input: BMI x Usia)
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-stone-700 mb-4">
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200">
+                            <p class="font-semibold text-stone-800 mb-1">Derajat Keanggotaan BMI ({{ hasil.bmi|floatformat:1 }})</p>
+                            {% for label, nilai in hasil.detail_fuzzy.derajat_bmi.items %}
+                            <div class="flex justify-between py-0.5">
+                                <span>{{ label }}</span>
+                                <span class="font-mono">{{ nilai }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200">
+                            <p class="font-semibold text-stone-800 mb-1">Derajat Keanggotaan Usia ({{ hasil.age }} thn)</p>
+                            {% for label, nilai in hasil.detail_fuzzy.derajat_usia.items %}
+                            <div class="flex justify-between py-0.5">
+                                <span>{{ label }}</span>
+                                <span class="font-mono">{{ nilai }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <p class="text-xs font-semibold text-stone-800 mb-2">Aturan IF-THEN yang Aktif:</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border border-stone-200">
+                            <thead class="bg-stone-100 text-stone-700">
+                                <tr>
+                                    <th class="py-2 px-3 border-b border-stone-200">Himpunan BMI</th>
+                                    <th class="py-2 px-3 border-b border-stone-200">Himpunan Usia</th>
+                                    <th class="py-2 px-3 border-b border-stone-200">Konsekuen Risiko</th>
+                                    <th class="py-2 px-3 border-b border-stone-200">Kekuatan Aturan (Alpha)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-stone-200">
+                                {% for aturan in hasil.detail_fuzzy.aturan_aktif %}
+                                <tr>
+                                    <td class="py-1.5 px-3">{{ aturan.bmi }}</td>
+                                    <td class="py-1.5 px-3">{{ aturan.usia }}</td>
+                                    <td class="py-1.5 px-3 font-medium">{{ aturan.risiko }}</td>
+                                    <td class="py-1.5 px-3 font-mono">{{ aturan.kekuatan }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="bg-white border border-stone-200 rounded-lg p-8 text-center shadow-sm">
+                    <h3 class="text-base font-semibold text-stone-800">Belum Ada Hasil Analisis</h3>
+                    <p class="mt-2 text-sm text-stone-600 max-w-md mx-auto">
+                        Isi parameter profil pengguna pada formulir di samping lalu tekan tombol hitung untuk menampilkan prediksi biaya Machine Learning, skor risiko Fuzzy, grafik Matplotlib, dan penjelasan AI.
+                    </p>
+                </div>
+                {% endif %}
+            </section>
+        </div>
+
+        <!-- Tabel Riwayat Database SQLite -->
+        <section class="bg-white border border-stone-200 rounded-lg p-6 shadow-sm">
+            <div class="flex items-center justify-between border-b border-stone-200 pb-3">
+                <h2 class="text-lg font-semibold text-stone-900">
+                    Riwayat 10 Prediksi Terakhir (Database SQLite)
+                </h2>
+                <span class="text-xs text-stone-500">Tersimpan otomatis setiap perhitungan</span>
+            </div>
+
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b border-stone-300 bg-stone-50 text-xs uppercase text-stone-600">
+                            <th class="py-3 px-3">Waktu</th>
+                            <th class="py-3 px-3">Usia</th>
+                            <th class="py-3 px-3">Kelamin</th>
+                            <th class="py-3 px-3">BMI</th>
+                            <th class="py-3 px-3">Anak</th>
+                            <th class="py-3 px-3">Perokok</th>
+                            <th class="py-3 px-3">Wilayah</th>
+                            <th class="py-3 px-3">Estimasi Biaya</th>
+                            <th class="py-3 px-3">Skor Fuzzy</th>
+                            <th class="py-3 px-3">Kategori</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-stone-200 text-stone-700">
+                        {% for item in riwayat_list %}
+                        <tr class="hover:bg-stone-50">
+                            <td class="py-2.5 px-3 text-xs text-stone-500 whitespace-nowrap">{{ item.created_at|date:"d M Y H:i" }}</td>
+                            <td class="py-2.5 px-3">{{ item.age }}</td>
+                            <td class="py-2.5 px-3">{{ item.get_sex_display }}</td>
+                            <td class="py-2.5 px-3">{{ item.bmi|floatformat:1 }}</td>
+                            <td class="py-2.5 px-3">{{ item.children }}</td>
+                            <td class="py-2.5 px-3">{{ item.get_smoker_display }}</td>
+                            <td class="py-2.5 px-3 capitalize">{{ item.region }}</td>
+                            <td class="py-2.5 px-3 font-semibold text-amber-800 whitespace-nowrap">USD {{ item.prediksi_biaya|floatformat:2 }}</td>
+                            <td class="py-2.5 px-3 font-mono">{{ item.skor_fuzzy|floatformat:1 }}</td>
+                            <td class="py-2.5 px-3 font-medium">{{ item.kategori_risiko }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="py-6 text-center text-sm text-stone-500">
+                                Belum ada riwayat prediksi yang tersimpan di database.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function toggleBmiMode() {
+            const mode = document.getElementById("mode_bmi").value;
+            const boxLangsung = document.getElementById("box_bmi_langsung");
+            const boxTinggiBerat = document.getElementById("box_tinggi_berat");
+            const inputBmi = document.getElementById("bmi");
+            const inputTinggi = document.getElementById("tinggi_cm");
+            const inputBerat = document.getElementById("berat_kg");
+
+            if (mode === "tinggi_berat") {
+                boxLangsung.classList.add("hidden");
+                boxTinggiBerat.classList.remove("hidden");
+                inputBmi.disabled = true;
+                inputTinggi.disabled = false;
+                inputBerat.disabled = false;
+                hitungBmiOtomatis();
+            } else {
+                boxLangsung.classList.remove("hidden");
+                boxTinggiBerat.classList.add("hidden");
+                inputBmi.disabled = false;
+                inputTinggi.disabled = true;
+                inputBerat.disabled = true;
+            }
+        }
+
+        function hitungBmiOtomatis() {
+            const tinggi = parseFloat(document.getElementById("tinggi_cm").value);
+            const berat = parseFloat(document.getElementById("berat_kg").value);
+            if (tinggi > 0 && berat > 0) {
+                const tinggiM = tinggi / 100.0;
+                const bmi = (berat / (tinggiM * tinggiM)).toFixed(2);
+                document.getElementById("preview_bmi").textContent = bmi;
+                document.getElementById("bmi").value = bmi;
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", toggleBmiMode);
+    </script>
+</body>
+</html>
