@@ -12,6 +12,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-uas-sistem-cerdas-2026")
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
